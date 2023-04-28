@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from dowhy.gcm import config
 from dowhy.gcm.cms import ProbabilisticCausalModel
-from dowhy.gcm.graph import (
+from dowhy.graph import (
     PARENTS_DURING_FIT,
     get_ordered_predecessors,
     is_root_node,

@@ -1,20 +1,20 @@
-"""This module defines the fundamental interfaces and functions related to causal graphs in graphical causal models.
+"""This module defines the fundamental interfaces and functions related to causal graphs..
 
 Classes and functions in this module should be considered experimental, meaning there might be breaking API changes in
 the future.
 """
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Any, List
 
 import networkx as nx
-import numpy as np
 from networkx.algorithms.dag import has_cycle
 from typing_extensions import Protocol
 
+from dowhy.gcm.causal_mechanisms import ConditionalStochasticModel, StochasticModel
+
 # This constant is used as key when storing/accessing models as causal mechanisms in graph node attributes
 CAUSAL_MECHANISM = "causal_mechanism"
-
 # This constant is used as key when storing the parents of a node during fitting. It's used for validation purposes
 # afterwards.
 PARENTS_DURING_FIT = "parents_during_fit"
@@ -53,67 +53,6 @@ class DirectedGraph(HasNodes, HasEdges, Protocol):
         raise NotImplementedError
 
 
-class StochasticModel(ABC):
-    """A stochastic model represents a model used for causal mechanisms for root nodes in a graphical causal model."""
-
-    @abstractmethod
-    def fit(self, X: np.ndarray) -> None:
-        """Fits the model according to the data."""
-        raise NotImplementedError
-
-    @abstractmethod
-    def draw_samples(self, num_samples: int) -> np.ndarray:
-        """Draws samples for the fitted model."""
-        raise NotImplementedError
-
-    @abstractmethod
-    def clone(self):
-        raise NotImplementedError
-
-
-class ConditionalStochasticModel(ABC):
-    """A conditional stochastic model represents a model used for causal mechanisms for non-root nodes in a graphical
-    causal model."""
-
-    @abstractmethod
-    def fit(self, X: np.ndarray, Y: np.ndarray) -> None:
-        """Fits the model according to the data."""
-        raise NotImplementedError
-
-    @abstractmethod
-    def draw_samples(self, parent_samples: np.ndarray) -> np.ndarray:
-        """Draws samples for the fitted model."""
-        raise NotImplementedError
-
-    @abstractmethod
-    def clone(self):
-        raise NotImplementedError
-
-
-class FunctionalCausalModel(ConditionalStochasticModel):
-    """Represents a Functional Causal Model (FCM), a specific type of conditional stochastic model, that is defined
-    as:
-        Y := f(X, N), N: Noise
-    """
-
-    def draw_samples(self, parent_samples: np.ndarray) -> np.ndarray:
-        return self.evaluate(parent_samples, self.draw_noise_samples(parent_samples.shape[0]))
-
-    @abstractmethod
-    def draw_noise_samples(self, num_samples: int) -> np.ndarray:
-        raise NotImplementedError
-
-    @abstractmethod
-    def evaluate(self, parent_samples: np.ndarray, noise_samples: np.ndarray) -> np.ndarray:
-        raise NotImplementedError
-
-
-class InvertibleFunctionalCausalModel(FunctionalCausalModel, ABC):
-    @abstractmethod
-    def estimate_noise(self, target_samples: np.ndarray, parent_samples: np.ndarray) -> np.ndarray:
-        raise NotImplementedError
-
-
 def is_root_node(causal_graph: DirectedGraph, node: Any) -> bool:
     return list(causal_graph.predecessors(node)) == []
 
@@ -130,14 +69,8 @@ def get_ordered_predecessors(causal_graph: DirectedGraph, node: Any) -> List[Any
 def node_connected_subgraph_view(g: DirectedGraph, node: Any) -> Any:
     """Returns a view of the provided graph g that contains only nodes connected to the node passed in"""
     # can't use nx.node_connected_component, because it doesn't work with DiGraphs.
-    # Hence a manual loop:
+    # Hence, a manual loop:
     return nx.induced_subgraph(g, [n for n in g.nodes if nx.has_path(g, n, node)])
-
-
-def clone_causal_models(source: HasNodes, destination: HasNodes):
-    for node in destination.nodes:
-        if CAUSAL_MECHANISM in source.nodes[node]:
-            destination.nodes[node][CAUSAL_MECHANISM] = source.nodes[node][CAUSAL_MECHANISM].clone()
 
 
 def validate_acyclic(causal_graph: DirectedGraph) -> None:
@@ -189,13 +122,19 @@ def validate_local_structure(causal_graph: DirectedGraph, node: Any) -> None:
         )
 
 
+def validate_node_in_graph(causal_graph: HasNodes, node: Any) -> None:
+    if node not in causal_graph.nodes:
+        raise ValueError("Node %s can not be found in the given graph!" % node)
+
+
+def clone_causal_models(source: HasNodes, destination: HasNodes):
+    for node in destination.nodes:
+        if CAUSAL_MECHANISM in source.nodes[node]:
+            destination.nodes[node][CAUSAL_MECHANISM] = source.nodes[node][CAUSAL_MECHANISM].clone()
+
+
 def validate_node_has_causal_model(causal_graph: HasNodes, node: Any) -> None:
     validate_node_in_graph(causal_graph, node)
 
     if CAUSAL_MECHANISM not in causal_graph.nodes[node]:
         raise ValueError("Node %s has no assigned causal mechanism!" % node)
-
-
-def validate_node_in_graph(causal_graph: HasNodes, node: Any) -> None:
-    if node not in causal_graph.nodes:
-        raise ValueError("Node %s can not be found in the given graph!" % node)

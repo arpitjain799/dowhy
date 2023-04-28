@@ -14,12 +14,15 @@ from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
 
 from dowhy.gcm.auto import AssignmentQuality, assign_causal_mechanisms
+from dowhy.gcm.causal_mechanisms import ConditionalStochasticModel
 from dowhy.gcm.cms import ProbabilisticCausalModel
 from dowhy.gcm.divergence import auto_estimate_kl_divergence
 from dowhy.gcm.fitting_sampling import draw_samples, fit_causal_model_of_target
-from dowhy.gcm.graph import (
+from dowhy.gcm.independence_test.kernel import kernel_based
+from dowhy.gcm.shapley import ShapleyConfig, estimate_shapley_values
+from dowhy.gcm.util.general import shape_into_2d
+from dowhy.graph import (
     PARENTS_DURING_FIT,
-    ConditionalStochasticModel,
     DirectedGraph,
     clone_causal_models,
     get_ordered_predecessors,
@@ -27,9 +30,6 @@ from dowhy.gcm.graph import (
     node_connected_subgraph_view,
     validate_causal_dag,
 )
-from dowhy.gcm.independence_test.kernel import kernel_based
-from dowhy.gcm.shapley import ShapleyConfig, estimate_shapley_values
-from dowhy.gcm.util.general import shape_into_2d
 
 _logger = logging.getLogger(__name__)
 

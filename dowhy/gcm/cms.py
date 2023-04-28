@@ -7,15 +7,13 @@ from typing import Any, Callable, Optional, Union
 
 import networkx as nx
 
-from dowhy.gcm.graph import (
-    CAUSAL_MECHANISM,
+from dowhy.gcm.causal_mechanisms import (
     ConditionalStochasticModel,
-    DirectedGraph,
     FunctionalCausalModel,
     InvertibleFunctionalCausalModel,
     StochasticModel,
-    clone_causal_models,
 )
+from dowhy.graph import CAUSAL_MECHANISM, DirectedGraph, clone_causal_models
 
 
 class ProbabilisticCausalModel:
@@ -83,7 +81,7 @@ class InvertibleStructuralCausalModel(StructuralCausalModel):
     :func:`~dowhy.gcm.whatif.counterfactual_samples`. This is a subclass of
     :class:`~dowhy.gcm.cms.StructuralCausalModel` and has further restrictions on the class of causal mechanisms.
     Here, the mechanisms of non-root nodes need to be invertible with respect to the noise,
-    such as :class:`~dowhy.gcm.fcms.PostNonlinearModel`.
+    such as :class:`~dowhy.gcm.causal_mechanisms.PostNonlinearModel`.
     """
 
     def set_causal_mechanism(
